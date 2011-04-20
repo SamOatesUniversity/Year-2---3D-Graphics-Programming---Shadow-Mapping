@@ -1,0 +1,38 @@
+uniform float4 camera_position;
+
+struct PS_INPUT
+{
+	float3 world_position : TEXCOORD0;
+	float3 world_normal : TEXCOORD1;
+};
+
+struct PS_OUTPUT
+{
+	float4 colour : COLOR0;
+};
+
+float3 PointLight( PS_INPUT fragment, float3 position, float3 colour, float intensity, float attinuation, float maxrange )
+{
+	const float3 world_pos = fragment.world_position;
+	const float3 lightlength = position - world_pos;
+	const float dist = length( lightlength );
+	
+	const float3 N = fragment.world_normal;
+	const float3 L = normalize( lightlength );
+	
+	float fatt = dist < maxrange ? ( 1.0f / ( 1.0f + ( ( 0.1f / attinuation ) * ( dist * dist ) ) ) ) : 0.0f;
+	const float3 lighting = saturate( dot( L, N ) ) * fatt;
+		
+	return ( colour * lighting ) * intensity;
+}
+
+PS_OUTPUT main( PS_INPUT fragment )
+{
+	PS_OUTPUT output;
+
+	float3 pointlight = PointLight( fragment, camera_position.xyz, float3( 1.0f, 1.0f, 1.0f ), 1.0f, 10.0f, 2000.0f );
+
+	output.colour = float4( pointlight, 1.0 );
+
+	return output;
+}
