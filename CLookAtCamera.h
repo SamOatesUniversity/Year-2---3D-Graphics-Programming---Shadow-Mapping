@@ -6,7 +6,7 @@
 #include <iostream>
 #include <cassert>
 
-class CCamera {
+class CLookAtCamera {
 private:
 	void updatePosition( void );
 	D3DXVECTOR3 m_position, m_lookat;
@@ -14,8 +14,8 @@ private:
 	int m_lastMouseX, m_lastMouseY;
 
 public:
-	CCamera();
-	~CCamera();
+	CLookAtCamera();
+	~CLookAtCamera();
 	bool init( float angle_x, float angle_z, float distance );
 
 	D3DXMATRIX ViewTransformation( void ) const;

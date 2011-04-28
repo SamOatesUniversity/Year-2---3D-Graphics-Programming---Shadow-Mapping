@@ -17,7 +17,8 @@
 #include "SceneDelegate.hpp"
 
 #include "CEntity.h"
-#include "CCamera.h"
+#include "CLookAtCamera.h"
+#include "CFirstPersonCamera.h"
 #include "CLight.h"
 
 class D3D9Window {
@@ -64,10 +65,10 @@ private:
 
 	SceneDelegate* _scene_delegate;
 
-	std::vector<CEntity*> _entity; 
+	std::vector<CEntity*> _entity; //to store all geometry objects in
 
-	CCamera *_camera;
-	CCamera *getCamera() { return _camera; }
+	CFirstPersonCamera *_camera;
+	CFirstPersonCamera *getCamera() { return _camera; }
 
 	void reloadShadows( void );
 	CShader *_light, *_shadow, *_ambient;
@@ -77,7 +78,7 @@ D3D9Window::D3D9Window() : _wnd(0), _run(false),
 	_d3d(0), _dev(0), _lost(true), // device is lost from the start
 	_window_rendertarget(0), _window_depthstencil(0) {
 		_scene_delegate = new SceneDelegate();
-		_camera = new CCamera();
+		_camera = new CFirstPersonCamera();
 }
 
 D3D9Window::~D3D9Window() {
@@ -267,7 +268,8 @@ void D3D9Window::reloadShadows( void )
 
 void D3D9Window::CreateManagedResources() {
 	
-	_camera->init( 0.5f, 0.0f, 20.0f );
+	_camera->init( 16.5f, -21.0f, 11.5f );
+	_camera->setRotation( D3DXVECTOR3( -0.36f, 3.61f, 0.0f ) );
 
 	_light = new CShader();
 	_light->init( _dev, "Lighting.vsh", "Lighting.psh" );
@@ -414,22 +416,28 @@ LRESULT CALLBACK D3D9Window::WndProc( HWND wnd, UINT msg, WPARAM wParam, LPARAM 
 			window->reloadShadows();
 			break;
 		case VK_LEFT:
-			window->getCamera()->rotateZ( -0.05f );
+			window->getCamera()->move( D3DXVECTOR3( -2.0f, 0.0f, 0.0f ) );
 			break;
 		case VK_RIGHT:
-			window->getCamera()->rotateZ( 0.05f );
+			window->getCamera()->move( D3DXVECTOR3( 2.0f, 0.0f, 0.0f ) );
 			break;
 		case VK_UP:
-			window->getCamera()->move( 0.1f );
+			window->getCamera()->move( D3DXVECTOR3( 0.0f, 0.0f, 2.0f ) );
 			break;
 		case VK_DOWN:
-			window->getCamera()->move( -0.1f );
+			window->getCamera()->move( D3DXVECTOR3( 0.0f, 0.0f, -2.0f ) );
 			break;
-		case VK_NUMPAD0:
-			window->getCamera()->rotateX( -0.05f );
+		case 'A':
+			window->getCamera()->move( D3DXVECTOR3( -2.0f, 0.0f, 0.0f ) );
 			break;
-		case VK_NUMPAD1:
-			window->getCamera()->rotateX( 0.05f );
+		case 'D':
+			window->getCamera()->move( D3DXVECTOR3( 2.0f, 0.0f, 0.0f ) );
+			break;
+		case 'W':
+			window->getCamera()->move( D3DXVECTOR3( 0.0f, 0.0f, 2.0f ) );
+			break;
+		case 'S':
+			window->getCamera()->move( D3DXVECTOR3( 0.0f, 0.0f, -2.0f ) );
 			break;
 		}
 		break;
@@ -437,12 +445,10 @@ LRESULT CALLBACK D3D9Window::WndProc( HWND wnd, UINT msg, WPARAM wParam, LPARAM 
 		switch ( wParam )
 		{
 		case MK_LBUTTON:
-			window->getCamera()->rotateX( 0.01f * (HIWORD( lParam ) - window->getCamera()->getLastMouseY()) );
-			window->getCamera()->rotateZ( 0.01f * (LOWORD( lParam ) - window->getCamera()->getLastMouseX()) );
-
-			break;
-		case MK_RBUTTON:
-			window->getCamera()->move( 0.1f * (HIWORD( lParam ) - window->getCamera()->getLastMouseY()) );
+			window->getCamera()->turn( D3DXVECTOR3( 
+				(window->getCamera()->getLastMouseXY().y - HIWORD( lParam )) * 0.01f, 
+				(window->getCamera()->getLastMouseXY().x - LOWORD( lParam )) * 0.01f, 
+				0.0f ) );
 			break;
 		}
 		window->getCamera()->setLastMouseXY( LOWORD( lParam ), HIWORD( lParam ) );

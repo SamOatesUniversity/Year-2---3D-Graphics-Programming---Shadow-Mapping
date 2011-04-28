@@ -27,13 +27,16 @@
     <ClCompile Include="CEntity.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CCamera.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CLight.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CLookAtCamera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CFirstPersonCamera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -44,13 +47,16 @@
     <ClInclude Include="CEntity.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CCamera.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="CShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CLight.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CLookAtCamera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CFirstPersonCamera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

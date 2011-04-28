@@ -63,7 +63,7 @@ bool CEntity::init( IDirect3DDevice9 *dev, const Mesh *mesh, const Shape &shape 
 	return true;	
 }
 
-void CEntity::drawAmbient( IDirect3DDevice9 *dev, CCamera *camera )
+void CEntity::drawAmbient( IDirect3DDevice9 *dev, CFirstPersonCamera *camera )
 {
 	D3DVIEWPORT9 viewport;
 	dev->GetViewport( &viewport );
@@ -79,7 +79,7 @@ void CEntity::drawAmbient( IDirect3DDevice9 *dev, CCamera *camera )
 	world_xform = ( rotation_z_xform * rotation_x_xform * rotation_y_xform ) * translation_xform;
 
 	// compute the view matrix using the camera object
-	D3DXMATRIX view_xform = camera->ViewTransformation();
+	D3DXMATRIX view_xform = camera->ViewTransformation( );
 
 	// compute the projection matrix using the camera object
 	D3DXMATRIX projection_xform = camera->ProjectionTransformation( (float)viewport.Width / (float)viewport.Height );
@@ -127,7 +127,7 @@ void CEntity::drawAmbient( IDirect3DDevice9 *dev, CCamera *camera )
 	}
 }
 
-void CEntity::draw( IDirect3DDevice9 *dev, CCamera *camera, CLight *light, IDirect3DTexture9 *shadow_map )
+void CEntity::draw( IDirect3DDevice9 *dev, CFirstPersonCamera *camera, CLight *light, IDirect3DTexture9 *shadow_map )
 {
 	D3DVIEWPORT9 viewport;
 	dev->GetViewport( &viewport );
@@ -143,7 +143,7 @@ void CEntity::draw( IDirect3DDevice9 *dev, CCamera *camera, CLight *light, IDire
 	world_xform = ( rotation_z_xform * rotation_x_xform * rotation_y_xform ) * translation_xform;
 
 	// compute the view matrix using the camera object
-	D3DXMATRIX view_xform = camera->ViewTransformation();
+	D3DXMATRIX view_xform = camera->ViewTransformation( );
 
 	// compute the projection matrix using the camera object
 	D3DXMATRIX projection_xform = camera->ProjectionTransformation( (float)viewport.Width / (float)viewport.Height );

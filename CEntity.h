@@ -7,7 +7,7 @@
 #include <cassert>
 #include "SceneDelegate.hpp"
 
-#include "CCamera.h"
+#include "CFirstPersonCamera.h"
 #include "CShader.h"
 #include "CLight.h"
 
@@ -45,8 +45,8 @@ public:
 	~CEntity();
 	bool init( IDirect3DDevice9 *dev, const Mesh *mesh, const Shape &shape );
 
-	void drawAmbient( IDirect3DDevice9 *dev, CCamera *camera );
-	void draw( IDirect3DDevice9 *dev, CCamera *camera, CLight *light, IDirect3DTexture9 *shadow_map );
+	void drawAmbient( IDirect3DDevice9 *dev, CFirstPersonCamera *camera );
+	void draw( IDirect3DDevice9 *dev, CFirstPersonCamera *camera, CLight *light, IDirect3DTexture9 *shadow_map );
 	void drawShadows( IDirect3DDevice9 *dev, CLight *light );
 	
 	void update( const Shape &shape );

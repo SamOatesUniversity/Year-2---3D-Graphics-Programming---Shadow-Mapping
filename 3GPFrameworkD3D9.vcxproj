@@ -89,17 +89,19 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="cast_a_shadow.cpp" />
-    <ClCompile Include="CCamera.cpp" />
+    <ClCompile Include="CLookAtCamera.cpp" />
     <ClCompile Include="CEntity.cpp" />
     <ClCompile Include="CLight.cpp" />
     <ClCompile Include="CShader.cpp" />
+    <ClCompile Include="CFirstPersonCamera.cpp" />
     <ClCompile Include="SceneDelegate.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CCamera.h" />
+    <ClInclude Include="CLookAtCamera.h" />
     <ClInclude Include="CEntity.h" />
     <ClInclude Include="CLight.h" />
     <ClInclude Include="CShader.h" />
+    <ClInclude Include="CFirstPersonCamera.h" />
     <ClInclude Include="SceneDelegate.hpp" />
   </ItemGroup>
   <ItemGroup>
