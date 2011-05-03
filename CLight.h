@@ -7,7 +7,7 @@
 #include "SceneDelegate.hpp"
 
 //Just cos i <3 Microsoft
-#define MAP_SIZE	4096
+#define MAP_SIZE	2048
 
 class CLight {
 private:

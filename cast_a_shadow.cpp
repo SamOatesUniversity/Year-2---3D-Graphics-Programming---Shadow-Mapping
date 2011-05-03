@@ -7,7 +7,7 @@
 //================================================================================================
 
 #define RELOAD_SHADOWS_TIMER		101010
-#define TYRONE_RUNNING				TRUE
+#define TYRONE_RUNNING				FALSE
 
 #include <windows.h>
 #include <d3d9.h>
@@ -316,7 +316,7 @@ void D3D9Window::CreateUnmanagedResources() {
 		NULL );
 
     if( FAILED(  _dev->CreateTexture( MAP_SIZE, MAP_SIZE, 0, D3DUSAGE_RENDERTARGET,
-                                    D3DFMT_R32F, D3DPOOL_DEFAULT, &_shadow_texture,
+                                    D3DFMT_G32R32F, D3DPOOL_DEFAULT, &_shadow_texture,
                                     NULL ) ) )
 	{
 		MessageBox(NULL, "Could not create shadow map texture", "", MB_OK | MB_ICONERROR );   

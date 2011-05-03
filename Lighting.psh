@@ -2,80 +2,122 @@ uniform float4 camera_position;
 uniform float4 light_position;
 uniform float4x4 light_view_projection_xform;
 uniform float texture_size;
-
 texture shadow_map : register(t0);
 sampler shadow_map_sampler : register(s0);
-
 struct PS_INPUT
 {
-	float3 world_position : TEXCOORD0;
-	float3 world_normal : TEXCOORD1;
-};
-
+    float3 world_position : TEXCOORD0;
+    float3 world_normal : TEXCOORD1;
+}
+;
 struct PS_OUTPUT
 {
-	float4 colour : COLOR0;
-};
-
+    float4 colour : COLOR0;
+}
+;
 struct SPOTLIGHT
 {
     float3 position;
     float3 direction;
     float cone_angle;
-};
-
+}
+;
 uniform SPOTLIGHT spot_light;
-
 float3 SpotLight( PS_INPUT fragment, SPOTLIGHT sSpotLight, float3 colour, float intensity, float fallOffAmount )
 {
     const float3 world_pos = fragment.world_position;
     const float3 lightlength = sSpotLight.position - world_pos;
-     
     const float3 N = fragment.world_normal;
     const float3 L = normalize( lightlength );
     const float3 spotLight = ( -dot( L, sSpotLight.direction ) );
-
-	const float falloff = spotLight - cos( sSpotLight.cone_angle * 0.5f );
-
-	const float fatt = saturate( falloff * ( 1.0f / fallOffAmount ) );
-
-	float3 lighting = spotLight > 0.0f ? colour * ( saturate( dot( L, N ) ) * fatt ) : float3( 0.0f, 0.0f, 0.0f );
-
+    const float falloff = spotLight - cos( sSpotLight.cone_angle * 0.5f );
+    const float fatt = saturate( falloff * ( 1.0f / fallOffAmount ) );
+    float3 lighting = spotLight > 0.0f ? colour * ( saturate( dot( L, N ) ) * fatt ) : float3( 0.0f, 0.0f, 0.0f );
     return lighting * intensity;
 }
 
+
 float3 Shadow( PS_INPUT fragment, float bias, int level_of_filtering, int kernal )
 {
-	const float4 hpos_from_light = mul( float4( fragment.world_position, 1.0 ), light_view_projection_xform );
-	const float light_to_point_depth = hpos_from_light.z / hpos_from_light.w;
+    const float4 hpos_from_light = mul( float4( fragment.world_position, 1.0 ), light_view_projection_xform );
+    const float light_to_point_depth = hpos_from_light.z / hpos_from_light.w;
+    float2 shadow_texcoord = float2( 0.5f + 0.5f * hpos_from_light.x / hpos_from_light.w,
+											0.5f - 0.5f * hpos_from_light.y / hpos_from_light.w );
+    float shadowing = 0.0f;
+    float count = 0.0f;
+    for( int x = -level_of_filtering; x <= level_of_filtering; x += kernal )
+	{
+        for( int y = -level_of_filtering; y <= level_of_filtering; y += kernal )
+		{
+            float light_to_first_hit_depth = tex2D( shadow_map_sampler, shadow_texcoord + float2( x / texture_size, y / texture_size )  ).x;
+            shadowing += (light_to_first_hit_depth+bias) < light_to_point_depth ? 0.0f : 1.0f;
+            count += 1.0f;
+        }
 
-	float2 shadow_texcoord = float2( 0.5f + 0.5f * hpos_from_light.x / hpos_from_light.w,
-											0.5f - 0.5f * hpos_from_light.y / hpos_from_light.w );		
-	
-	float shadowing = 0.0f;
-	float count = 0.0f;
-				
-	for( int x = -level_of_filtering; x <= level_of_filtering; x += kernal )
-	{	
-		for( int y = -level_of_filtering; y <= level_of_filtering; y += kernal )
-		{ 											
-			float light_to_first_hit_depth = tex2D( shadow_map_sampler, shadow_texcoord + float2( x / texture_size, y / texture_size )  ).x;
-			shadowing += (light_to_first_hit_depth+bias) < light_to_point_depth ? 0.0f : 1.0f;
-			count += 1.0f;
-		}
 	}
 
 	return float3( shadowing / count, shadowing / count, shadowing / count );
 }
 
+float linstep(float minimum, float maximum, float amount)  
+{
+	float new_amount = (amount - minimum) / (maximum - minimum);
+    if( new_amount < 0.0f ) new_amount = 0.0f;
+	if( new_amount > 1.0f ) new_amount = 1.0f;
+	return new_amount;
+}
+  
+float ReduceLightBleeding(float p_max, float Amount)  
+{
+    return linstep(Amount, 1.0f, p_max);
+}
+  
+
+float3 VarienceShadow( PS_INPUT fragment )
+{
+    const float4 hpos_from_light = mul( float4( fragment.world_position, 1.0 ), light_view_projection_xform );
+    const float light_to_point_depth = hpos_from_light.z / hpos_from_light.w;
+    float2 shadow_texcoord = float2( 0.5f + 0.5f * hpos_from_light.x / hpos_from_light.w,
+									 0.5f - 0.5f * hpos_from_light.y / hpos_from_light.w );
+    
+	//dont use pcf... look into bluring... will be hotter :)
+
+	int level_of_filtering = 2;
+	int kernal = 1;
+	float shadowing = 0.0f;
+    float count = 0.0f;
+    for( int x = -level_of_filtering; x <= level_of_filtering; x += kernal )
+	{
+        for( int y = -level_of_filtering; y <= level_of_filtering; y += kernal )
+		{
+			float2 light_to_first_hit_depth = tex2D( shadow_map_sampler, shadow_texcoord + float2( x / texture_size, y / texture_size ) ).xy;
+			float p = ( light_to_point_depth <= light_to_first_hit_depth.x );
+			float variance = light_to_first_hit_depth.y - (light_to_first_hit_depth.x*light_to_first_hit_depth.x);
+			variance = max( variance, 0.000005f );
+			float d = light_to_point_depth - light_to_first_hit_depth.x;
+			float p_max = variance / (variance + d*d);
+			p_max = smoothstep( 0.99f, 1.0f, p_max);
+			shadowing += max( p, p_max);
+            count += 1.0f;
+        }
+
+	}
+
+	shadowing /= count;
+
+
+    return float3(shadowing, shadowing, shadowing );
+}
+
+
 PS_OUTPUT main( PS_INPUT fragment )
 {
-	PS_OUTPUT output;
+    PS_OUTPUT output;
+    //float3 shadow_attenuation = Shadow( fragment, 0.000045f, 6, 2 );
 
-	float3 shadow_attenuation = Shadow( fragment, 0.000045f, 6, 2 );
-	float3 spotLight = SpotLight( fragment, spot_light, float3( 1.0f, 1.0f, 1.0f ), 1.0f, 0.6f );
-
-	output.colour = float4( spotLight * shadow_attenuation, 1.0 );
-
-	return output;
+	float3 shadow_attenuation = VarienceShadow( fragment );
+    float3 spotLight = SpotLight( fragment, spot_light, float3( 1.0f, 1.0f, 1.0f ), 1.0f, 0.6f );
+    output.colour = float4( spotLight * shadow_attenuation, 1.0 );
+    return output;
 }
+
