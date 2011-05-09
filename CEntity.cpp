@@ -196,6 +196,7 @@ void CEntity::draw( IDirect3DDevice9 *dev, CFirstPersonCamera *camera, CLight *l
 		_pixel_shader_constants->SetFloatArray(dev, _pixel_shader_constants->GetConstantByName(hLight, "position"), pos, 3);
 		_pixel_shader_constants->SetFloatArray(dev, _pixel_shader_constants->GetConstantByName(hLight, "direction"), dir, 3);
 		_pixel_shader_constants->SetFloat(dev, _pixel_shader_constants->GetConstantByName(hLight, "cone_angle"), light->getLight().coneAngle * 2.0f);
+		_pixel_shader_constants->SetFloat(dev, _pixel_shader_constants->GetConstantByName(hLight, "intensity"), light->getLight().intensity);
 
 		dev->SetTexture( 0, shadow_map );
 		dev->SetSamplerState( 0, D3DSAMP_ADDRESSU, D3DTADDRESS_BORDER );
@@ -261,7 +262,7 @@ void CEntity::drawShadows( IDirect3DDevice9 *dev, CLight *light )
 		dev->SetPixelShader( _pixel_shader );
 
 		// configure the pipeline - framebuffer output
-		//   defaults are fine at the moment
+		
 
 		// draw (execute the pipeline)
 		dev->DrawIndexedPrimitive( D3DPT_TRIANGLELIST, 0, 0, _num_vertices, 0, _num_triangles );

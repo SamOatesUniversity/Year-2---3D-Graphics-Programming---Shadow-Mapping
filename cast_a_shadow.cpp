@@ -7,7 +7,7 @@
 //================================================================================================
 
 #define RELOAD_SHADOWS_TIMER		101010
-#define TYRONE_RUNNING				FALSE
+#define TYRONE_RUNNING				TRUE
 
 #include <windows.h>
 #include <d3d9.h>
@@ -375,6 +375,7 @@ void D3D9Window::DrawFrame() {
 		}
 		_dev->EndScene();
 
+		//Draw the sceene normally
 		_dev->BeginScene();
 		_dev->SetRenderTarget(0, _window_rendertarget);
 		_dev->SetDepthStencilSurface( _window_depthstencil );
