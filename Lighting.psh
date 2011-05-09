@@ -3,15 +3,6 @@ uniform float4 light_position;
 uniform float4x4 light_view_projection_xform;
 uniform float texture_size;
 
-#define BLOCKER_SEARCH_NUM_SAMPLES 16 
-#define PCF_NUM_SAMPLES 16 
-#define NEAR_PLANE 9.5 
-#define LIGHT_WORLD_SIZE .5 
-#define LIGHT_FRUSTUM_WIDTH 3.75
-
-// Assuming that LIGHT_FRUSTUM_WIDTH == LIGHT_FRUSTUM_HEIGHT 
-#define LIGHT_SIZE_UV (LIGHT_WORLD_SIZE / LIGHT_FRUSTUM_WIDTH) 
-
 texture shadow_map : register(t0);
 sampler shadow_map_sampler : register(s0);
 
@@ -36,6 +27,7 @@ struct SPOTLIGHT
 
 uniform SPOTLIGHT spot_light;
 
+//Create the spotlighting, ignoring all shadowing
 float3 SpotLight( PS_INPUT fragment, SPOTLIGHT sSpotLight, float3 colour, float fall_off_amount )
 {
 	const float3 world_pos = fragment.world_position;
@@ -74,7 +66,6 @@ float3 Shadow( PS_INPUT fragment, float bias, int level_of_filtering, int kernal
         }
 
 	}
-
 	return float3( shadowing / count, shadowing / count, shadowing / count );
 }
   
@@ -87,25 +78,27 @@ float3 VarienceShadow( PS_INPUT fragment )
 									 0.5f - 0.5f * hpos_from_light.y / hpos_from_light.w );
     
 
-	int level_of_filtering = 6;
-	int kernal = 2;
-	float shadowing = 0.0f;
-    float count = 0.0f;
+	//simple PCF filtering
+	const int level_of_filtering = 3;
+	const int kernal = 1;
+
+	float shadowing = 0.0f; float count = 0.0f;
     for( int x = -level_of_filtering; x <= level_of_filtering; x += kernal )
 	{
         for( int y = -level_of_filtering; y <= level_of_filtering; y += kernal )
 		{
 			float2 light_to_first_hit_depth = tex2D( shadow_map_sampler, shadow_texcoord + float2( x / texture_size, y / texture_size ) ).xy;
+			
+			//Varience shadow mapping
 			float p = ( light_to_point_depth <= light_to_first_hit_depth.x );
 			float variance = light_to_first_hit_depth.y - (light_to_first_hit_depth.x*light_to_first_hit_depth.x);
-			variance = max( variance, 0.0000005f );
+			variance = max( variance, 0.000005f );
 			float d = light_to_point_depth - light_to_first_hit_depth.x;
-			float p_max = variance / (variance + d*d);
+			float p_max = variance / (variance + d * d);
 			p_max = smoothstep( 0.99f, 1.0f, p_max);
 			shadowing += max( p, p_max);
             count += 1.0f;
         }
-
 	}
 
 	shadowing /= count;
@@ -116,11 +109,14 @@ float3 VarienceShadow( PS_INPUT fragment )
 PS_OUTPUT main( PS_INPUT fragment )
 {
     PS_OUTPUT output;
-    //float3 shadow_attenuation = Shadow( fragment, 0.000045f, 6, 2 );
-	float3 shadow_attenuation = VarienceShadow( fragment );
 
-    float3 spotLight = SpotLight( fragment, spot_light, float3( 1.0f, 1.0f, 1.0f ), 0.1f );
-    output.colour = float4( spotLight * shadow_attenuation, 1.0 );
+	//I've left standerd shadow mapping in, so people
+	//can see the differences between the two
+
+    //float3 shadow_attenuation = Shadow( fragment, 0.000045f, 6, 2 );
+	float3 shadow_attenuation = VarienceShadow( fragment ); //Create the shadow information
+    float3 spotLight = SpotLight( fragment, spot_light, float3( 1.0f, 1.0f, 1.0f ), 0.001f ); //create the spotlight information
+    output.colour = float4( spotLight * shadow_attenuation, 1.0 ); //multiply spotlight and shadow to get final color
     return output;
 }
 

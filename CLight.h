@@ -6,14 +6,14 @@
 #include <cassert>
 #include "SceneDelegate.hpp"
 
-//Just cos i <3 Microsoft
-#define MAP_SIZE	4096
+#define MAP_SIZE	1024
 
 class CLight {
 private:
 	Light m_light;
+	D3DXVECTOR3 m_up;
 public:
-	CLight( Light light );
+	CLight( SceneDelegate* scene, int light_index );
 	~CLight( );
 
 	D3DXVECTOR4 getPosition();

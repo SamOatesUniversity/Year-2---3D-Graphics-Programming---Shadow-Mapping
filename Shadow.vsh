@@ -17,6 +17,8 @@ VS_OUTPUT main( VS_INPUT vertex )
 {
 	VS_OUTPUT output;
 
+	//calculate the position, requied.
+	//but also pass the same value through, so it can be accessed in the pixel shader
 	output.hpos = output.hposition = mul( float4( vertex.position, 1.0 ), world_view_projection_xform );
 	
 	return output;

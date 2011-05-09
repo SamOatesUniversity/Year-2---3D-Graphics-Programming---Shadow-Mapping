@@ -12,10 +12,12 @@ PS_OUTPUT main( PS_INPUT fragment )
 {
 	PS_OUTPUT output;
 
+	//Calculate the depth value by doing the homogeniusdivide
 	float depth = fragment.hpos.z / fragment.hpos.w;
+
+	//also store the depth squared for varience shadow mapping
 	float dx = ddx(depth);  
 	float dy = ddy(depth); 
-
 	output.colour = float4( depth, depth*depth + 0.25*(dx*dx + dy*dy), 0, 1 );
 
 	return output;

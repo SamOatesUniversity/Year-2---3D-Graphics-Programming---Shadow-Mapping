@@ -11,6 +11,8 @@ struct PS_OUTPUT
 	float4 colour : COLOR0;
 };
 
+
+//Create a point light at the cameras position
 float3 PointLight( PS_INPUT fragment, float3 position, float3 colour, float intensity, float attinuation, float maxrange )
 {
 	const float3 world_pos = fragment.world_position;

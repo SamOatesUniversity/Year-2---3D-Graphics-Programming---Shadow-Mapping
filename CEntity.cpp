@@ -18,6 +18,7 @@ CEntity::~CEntity()
 
 bool CEntity::init( IDirect3DDevice9 *dev, const Mesh *mesh, const Shape &shape )
 {
+	//Create a vertex decloration
 	D3DVERTEXELEMENT9 vertex_elements[] = {
 		{ 0, 0, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0 }, // an xyz position
 		{ 0, 12, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_NORMAL, 0 },  // an xyz normal
@@ -25,8 +26,10 @@ bool CEntity::init( IDirect3DDevice9 *dev, const Mesh *mesh, const Shape &shape 
 	};
 	dev->CreateVertexDeclaration( vertex_elements, &_vertex_declaration );
 
+	//get the number of verticies
 	_num_vertices = mesh->vertexArray.size();
 
+	//reate a vertex buffer
 	dev->CreateVertexBuffer( _num_vertices * sizeof(Vertex), 0, 0, D3DPOOL_MANAGED, &_vertex_buffer, 0 ); // create the vertex buffer
 
 	// fill the vertex buffer with data
@@ -41,6 +44,7 @@ bool CEntity::init( IDirect3DDevice9 *dev, const Mesh *mesh, const Shape &shape 
 		_vertex_buffer->Unlock();
 	}
 
+	//get the number of indexes
 	_num_triangles = mesh->indexArray.size();
 
 	// create the index buffer
@@ -57,6 +61,7 @@ bool CEntity::init( IDirect3DDevice9 *dev, const Mesh *mesh, const Shape &shape 
 		_index_buffer->Unlock();
 	}
 
+	//position and rotate to initial transforms
 	_position = D3DXVECTOR3( shape.position.x, shape.position.y, shape.position.z );
 	_rotation = D3DXVECTOR3( shape.rotation.x, shape.rotation.y, shape.rotation.z );
 
@@ -271,6 +276,7 @@ void CEntity::drawShadows( IDirect3DDevice9 *dev, CLight *light )
 
 void CEntity::update( const Shape &shape )
 {
+	//update positions and rotation
 	_position = D3DXVECTOR3( shape.position.x, shape.position.y, shape.position.z );
 	_rotation = D3DXVECTOR3( shape.rotation.x, shape.rotation.y, shape.rotation.z );
 }

@@ -9,16 +9,26 @@ CFirstPersonCamera::~CFirstPersonCamera(void)
 {
 }
 
-void CFirstPersonCamera::init( float x, float y, float z )
+void CFirstPersonCamera::init( SceneDelegate* scene, D3DXVECTOR3 position, D3DXVECTOR3 rotation )
 {
-	m_position = D3DXVECTOR3( x, y, z );
-	m_rotation = D3DXVECTOR3( 0.0f, 0.0f, 0.0f );
+	m_position = position;
+	m_rotation = rotation;
+	m_world_up = D3DXVECTOR3(scene->worldUpDirection().x, scene->worldUpDirection().y, scene->worldUpDirection().z);
 }
 
-D3DXMATRIX CFirstPersonCamera::ViewTransformation( void )
+//Compute the view matrix
+D3DXMATRIX CFirstPersonCamera::ViewTransformation()
 {
-	m_up = D3DXVECTOR3( 0.0f, 0.0f, 1.0f );
-	m_look = D3DXVECTOR3( 0.0f, 1.0f, 0.0f );
+	if( m_world_up.z > 0.0f )
+	{
+		m_up = D3DXVECTOR3( 0.0f, 0.0f, 1.0f );
+		m_look = D3DXVECTOR3( 0.0f, 1.0f, 0.0f );
+	}
+	else
+	{
+		m_up = D3DXVECTOR3( 0.0f, 1.0f, 0.0f );
+		m_look = D3DXVECTOR3( 0.0f, 0.0f, 1.0f );
+	}
 	m_right = D3DXVECTOR3( -1.0f, 0.0f, 0.0f );
 
 	D3DXMATRIX yawMatrix;
@@ -39,6 +49,7 @@ D3DXMATRIX CFirstPersonCamera::ViewTransformation( void )
 	D3DXMATRIX viewMatrix;
 	D3DXMatrixIdentity( &viewMatrix );
 
+	//Frenet
 	viewMatrix._11 = m_right.x; viewMatrix._12 = m_up.x; viewMatrix._13 = m_look.x;
 	viewMatrix._21 = m_right.y; viewMatrix._22 = m_up.y; viewMatrix._23 = m_look.y;
 	viewMatrix._31 = m_right.z; viewMatrix._32 = m_up.z; viewMatrix._33 = m_look.z;
@@ -50,6 +61,7 @@ D3DXMATRIX CFirstPersonCamera::ViewTransformation( void )
 	return viewMatrix;
 }
 
+//compute the projection matrix
 D3DXMATRIX CFirstPersonCamera::ProjectionTransformation( float viewport_aspect ) const
 {
 	D3DXMATRIX proj_xform;

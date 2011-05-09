@@ -89,7 +89,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="cast_a_shadow.cpp" />
-    <ClCompile Include="CLookAtCamera.cpp" />
     <ClCompile Include="CEntity.cpp" />
     <ClCompile Include="CLight.cpp" />
     <ClCompile Include="CShader.cpp" />
@@ -97,7 +96,6 @@
     <ClCompile Include="SceneDelegate.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CLookAtCamera.h" />
     <ClInclude Include="CEntity.h" />
     <ClInclude Include="CLight.h" />
     <ClInclude Include="CShader.h" />

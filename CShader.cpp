@@ -27,8 +27,11 @@ bool CShader::init( IDirect3DDevice9 *dev, char *vertex, char *pixel )
 	ID3DXBuffer* shader = 0;
 	ID3DXBuffer* errors = 0;
 
+	//Attempt to load the vertex shader
 	if ( FAILED(D3DXCompileShaderFromFileA( vertex, 0, 0, "main", "vs_3_0", shader_flags, &shader, &errors, &_vertex_shader_constants )) )
 	{
+		//Either the shader contained errors, or doesnt exist.
+		//Return false, which inturn will end the program.
 		if ( errors )
 			std::cerr << "Failed to compile vertex shader: " << (const char*)errors->GetBufferPointer() << std::endl;
 		else
@@ -38,11 +41,15 @@ bool CShader::init( IDirect3DDevice9 *dev, char *vertex, char *pixel )
 	}
 	else
 		dev->CreateVertexShader( (const DWORD*)shader->GetBufferPointer(), &_vertex_shader );
+
 	Release( &shader );
 	Release( &errors );
 
+	//Attempt to load the pixel shader
 	if ( FAILED(D3DXCompileShaderFromFileA( pixel, 0, 0, "main", "ps_3_0", shader_flags, &shader, &errors, &_pixel_shader_constants )) )
 	{
+		//Either the shader contained errors, or doesnt exist.
+		//Return false, which inturn will end the program.
 		if ( errors )
 			std::cerr << "Failed to compile pixel shader: " << (const char*)errors->GetBufferPointer() << std::endl;
 		else
@@ -52,20 +59,28 @@ bool CShader::init( IDirect3DDevice9 *dev, char *vertex, char *pixel )
 	}
 	else
 		dev->CreatePixelShader( (const DWORD*)shader->GetBufferPointer(), &_pixel_shader );
+
 	Release( &shader );
 	Release( &errors );
 
+	//Both pixel and vertex shader loaded sucessfully
 	return true;
 }
 
 void CShader::reload( IDirect3DDevice9 *dev, char *vertex, char *pixel )
 {
+	//Release the current shaders
 	Release( &_vertex_shader );
 	Release( &_vertex_shader_constants );
 	Release( &_pixel_shader );
 	Release( &_pixel_shader_constants );
+	//then reload them.
 	init( dev, vertex, pixel );
 }
+
+///////////
+//Getters//
+///////////
 
 IDirect3DVertexShader9 *CShader::vertex()
 {

@@ -6,9 +6,6 @@
 // Description : C++ framework for 3D Graphics Programming assignment
 //================================================================================================
 
-#define RELOAD_SHADOWS_TIMER		101010
-#define TYRONE_RUNNING				TRUE
-
 #include <windows.h>
 #include <d3d9.h>
 #include <d3dx9.h>
@@ -17,7 +14,6 @@
 #include "SceneDelegate.hpp"
 
 #include "CEntity.h"
-#include "CLookAtCamera.h"
 #include "CFirstPersonCamera.h"
 #include "CLight.h"
 
@@ -29,6 +25,7 @@ public:
 	bool Init(unsigned int width, unsigned int height);
 	void Run();
 	void Deinit();
+
 private:
 	void CreateManagedResources();
 	void DestroyManagedResources();
@@ -36,9 +33,15 @@ private:
 	void DestroyUnmanagedResources();
 	void UpdateFrame(float time);
 	void DrawFrame();
+
 private:
 	static LRESULT CALLBACK WndProc(HWND wnd, UINT msg, WPARAM wparam, LPARAM lparam);
+
 private:
+	//////////////////////////////
+	// Template Function		//
+	// Release is for Direct3D  //
+	//////////////////////////////
 	template<typename T>
 	void Release(T** ptr) {
 		if ( *ptr != 0 ) {
@@ -46,6 +49,18 @@ private:
 			*ptr = 0;
 		}
 	}
+	//////////////////////////////////////////////////
+	// Template Function							//
+	// Release is for standered new/delete objects  //
+	//////////////////////////////////////////////////
+	template<typename T>
+	void Free(T** ptr) {
+		if ( *ptr != 0 ) {
+			delete (*ptr);
+			*ptr = 0;
+		}
+	}
+
 private: // members for basic windowing
 	HWND _wnd; // window handle
 	bool _run; // flag to indicate when the message loop should exit
@@ -55,30 +70,36 @@ private: // members for basic D3D9
 	bool _lost; // flag to indicate the device needs resetting
 	D3DPRESENT_PARAMETERS _pp; // device settings needed for resetting it when it is lost
 private:
-	LPDIRECT3DTEXTURE9  _shadow_texture;
+	LPDIRECT3DTEXTURE9  _shadow_texture; //Texture to store shadow map in
+	IDirect3DSurface9* _shadow_rendertarget; //The first surface level of the shadow texture
+	IDirect3DSurface9* _shadow_depthstencil; //The depth stencil for the shadow pass
 
-	IDirect3DSurface9* _shadow_rendertarget;
-	IDirect3DSurface9* _shadow_depthstencil;
+	IDirect3DSurface9* _window_rendertarget; //The default screen render target
+	IDirect3DSurface9* _window_depthstencil; //The default septh stencil
 
-	IDirect3DSurface9* _window_rendertarget;
-	IDirect3DSurface9* _window_depthstencil;
+	SceneDelegate* _scene_delegate; //The sceene delegate stores all the sceenes information.
+									//This includes meshes and lighting
 
-	SceneDelegate* _scene_delegate;
+	std::vector<CEntity*> _entity; //Store all geometry objects
 
-	std::vector<CEntity*> _entity; //to store all geometry objects in
+	CFirstPersonCamera *_camera;	//A first person camera used to navigate the sceene
+	CFirstPersonCamera *getCamera() { return _camera; } //A simple getter for the camera
 
-	CFirstPersonCamera *_camera;
-	CFirstPersonCamera *getCamera() { return _camera; }
-
-	void reloadShadows( void );
-	CShader *_light, *_shadow, *_ambient;
+	void reloadShaders( void );	//Reloads all three shaders (pixel and vertex)
+	CShader *_light, *_shadow, *_ambient; //The free shaders used in the sceene
 };
 
-D3D9Window::D3D9Window() : _wnd(0), _run(false),
-	_d3d(0), _dev(0), _lost(true), // device is lost from the start
-	_window_rendertarget(0), _window_depthstencil(0) {
-		_scene_delegate = new SceneDelegate();
-		_camera = new CFirstPersonCamera();
+//Initilise unmanaged resources to null
+D3D9Window::D3D9Window() : 
+	_wnd(0), _run(true),
+	_d3d(0), _dev(0), _lost(true), 
+	_window_rendertarget(0), _window_depthstencil(0), _shadow_rendertarget(0),  
+	_shadow_depthstencil(0), _shadow_texture(0)
+{
+	//Create an instance of the sceene delegate
+	_scene_delegate = new SceneDelegate();
+	//Create an instance of the camera
+	_camera = new CFirstPersonCamera();
 }
 
 D3D9Window::~D3D9Window() {
@@ -122,15 +143,6 @@ bool D3D9Window::Init(unsigned int width, unsigned int height) {
 		std::cerr << "D3D9Window::Init failed; CreateWindow failed" << std::endl;
 		return false;
 	}
-
-	//Create a timer if in debug mode, for auto reloading of shaders
-#if !TYRONE_RUNNING
-	SetTimer(_wnd,             // handle to main window 
-		RELOAD_SHADOWS_TIMER,            // timer identifier 
-		3000,                 // 10-second interval 
-		(TIMERPROC) NULL);     // no timer callback 
-#endif
-
 
 	// Store a pointer to this object in the window - this is helpful for later
 	SetWindowLongPtr(_wnd, GWL_USERDATA, (LONG_PTR)this);
@@ -193,7 +205,6 @@ void D3D9Window::Run() {
 	// Establish a "message loop", continuously listening for and processing window events,
 	//   updating and drawing the "scene"
 	MSG msg;
-	_run = true;
 	timeBeginPeriod(1);
 	const long ideal_frame_time = 16;
 	long start_time = timeGetTime();
@@ -258,7 +269,9 @@ void D3D9Window::Deinit()
 	_wnd = 0;
 }
 
-void D3D9Window::reloadShadows( void )
+//Release the currently store shaders,
+//Reload them. Allows shaders
+void D3D9Window::reloadShaders( void )
 {
 	std::cout<< "Reloading Shaders\n";
 	_light->reload( _dev, "Lighting.vsh", "Lighting.psh" );
@@ -266,20 +279,39 @@ void D3D9Window::reloadShadows( void )
 	_ambient->reload( _dev, "Ambient.vsh", "Ambient.psh" );
 }
 
+//Create managed resources
 void D3D9Window::CreateManagedResources() {
 	
-	_camera->init( 16.5f, -21.0f, 11.5f );
-	_camera->setRotation( D3DXVECTOR3( -0.36f, 3.61f, 0.0f ) );
+	//Initialise camera, position and rotate it
+	D3DXVECTOR3 camera_pos = D3DXVECTOR3( 16.5f, -21.0f, 11.5f );
+	D3DXVECTOR3 camera_rotation = D3DXVECTOR3( -0.5f, 3.71f, 0.0f );
+	_camera->init( _scene_delegate, camera_pos, camera_rotation );
 
+	//Load the lighting shader
 	_light = new CShader();
-	_light->init( _dev, "Lighting.vsh", "Lighting.psh" );
+	if(	!_light->init( _dev, "Lighting.vsh", "Lighting.psh" ) )
+	{
+		//if it failed to load quit
+		_run = false;
+	}
 
+	//Load the shadow shader
 	_shadow = new CShader();
-	_shadow->init( _dev, "Shadow.vsh", "Shadow.psh" );
+	if(	!_shadow->init( _dev, "Shadow.vsh", "Shadow.psh" ) )
+	{
+		//if it failed to load quit
+		_run = false;
+	}
 
+	//Load the ambient shader
 	_ambient = new CShader();
-	_ambient->init( _dev, "Ambient.vsh", "Ambient.psh" );
+	if(	!_ambient->init( _dev, "Ambient.vsh", "Ambient.psh" ) )
+	{
+		//if it failed to load quit
+		_run = false;
+	}
 
+	//Create entities based upon the meshes from the sceene delegate
 	for( UINT i = 0; i < _scene_delegate->numberOfShapes(); i++ )
 	{
 		Mesh mesh;
@@ -294,34 +326,45 @@ void D3D9Window::CreateManagedResources() {
 
 }
 
-void D3D9Window::DestroyManagedResources() {
+void D3D9Window::DestroyManagedResources() 
+{
+	//Release allocated memory
+	Free( &_camera );
+	Free( &_light );
+	Free( &_shadow );
+	Free( &_ambient );
 
-	delete _camera;
-	delete _light;
-	delete _shadow;
-	delete _ambient;
 	for( std::vector<CEntity*>::iterator ent = _entity.begin(); ent != _entity.end(); ++ent ) 
-		delete (*ent);
+		Free( &(*ent) );
+
+	_entity.clear();
 }
 
-void D3D9Window::CreateUnmanagedResources() {
+void D3D9Window::CreateUnmanagedResources() 
+{
 	// retrieve pointers to the backbuffer surfaces
 	_dev->GetRenderTarget(0, &_window_rendertarget);
 	_dev->GetDepthStencilSurface( &_window_depthstencil );
 
+	//Create depth stencil for shadow pass
 	_dev->CreateDepthStencilSurface( MAP_SIZE, MAP_SIZE,
 		D3DFMT_D24X8, D3DMULTISAMPLE_NONE,
 		0, TRUE,
 		&_shadow_depthstencil,
 		NULL );
 
+
+	//Create the texture to render the shadow pass too
+	//Format is D3DFMT_G32R32F as two channels are needed for Varience Shadow mapping
     if( FAILED(  _dev->CreateTexture( MAP_SIZE, MAP_SIZE, 0, D3DUSAGE_RENDERTARGET,
                                     D3DFMT_G32R32F, D3DPOOL_DEFAULT, &_shadow_texture,
                                     NULL ) ) )
 	{
-		MessageBox(NULL, "Could not create shadow map texture", "", MB_OK | MB_ICONERROR );   
+		std::cout << "Error - Could not create shadow map texture\n";   
+		_run = false;
 	}
 
+	//grab its surface
 	_shadow_texture->GetSurfaceLevel( 0, &_shadow_rendertarget );
 
 }
@@ -338,6 +381,7 @@ void D3D9Window::DestroyUnmanagedResources() {
 void D3D9Window::UpdateFrame(float time) {
 	_scene_delegate->animate(time);
 
+	//update all entities with updates sceene delegate information
 	for( UINT i = 0; i < _scene_delegate->numberOfShapes(); i++ ) 
 	{
 		_entity[i]->update( _scene_delegate->shapeAtIndex( i ) );
@@ -346,6 +390,7 @@ void D3D9Window::UpdateFrame(float time) {
 
 void D3D9Window::DrawFrame() {
 
+	//Draw the sceene with ambient lighting
 	_dev->BeginScene();
 
 	_dev->SetRenderTarget( 0, _window_rendertarget );
@@ -359,9 +404,10 @@ void D3D9Window::DrawFrame() {
 
 	_dev->EndScene();
 
+	//For each light source in the sceene
 	for( UINT l = 0; l < _scene_delegate->numberOfLights(); l++ )
 	{
-		CLight light( _scene_delegate->lightAtIndex( l ) );
+		CLight light( _scene_delegate, l );
 
 		//Draw the shadows from the lights perspective
 		_dev->BeginScene();
@@ -400,21 +446,11 @@ LRESULT CALLBACK D3D9Window::WndProc( HWND wnd, UINT msg, WPARAM wParam, LPARAM 
 
 	// Handle required messages
 	switch (msg) {
-#if !TYRONE_RUNNING
-	case WM_TIMER:
-		switch( wParam )
-		{
-		case RELOAD_SHADOWS_TIMER:
-			window->reloadShadows();
-			break;
-		}
-		break;
-#endif
 	case WM_KEYDOWN:
 		switch ( wParam )
 		{
 		case VK_F5:
-			window->reloadShadows();
+			window->reloadShaders();
 			break;
 		case VK_LEFT:
 			window->getCamera()->move( D3DXVECTOR3( -2.0f, 0.0f, 0.0f ) );
